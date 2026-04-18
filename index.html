@@ -3,34 +3,33 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Rainy Traffic Highway PRO</title>
+<title>Realistic Rain Highway Simulator</title>
 <style>
 html,body{
-    margin:0;
-    padding:0;
-    overflow:hidden;
-    background:#000;
+  margin:0;
+  padding:0;
+  overflow:hidden;
+  background:#6f8fb1;
 }
 canvas{
-    display:block;
+  display:block;
 }
-#label{
-    position:fixed;
-    top:10px;
-    left:12px;
-    color:#fff;
-    font-family:Arial,Helvetica,sans-serif;
-    font-size:16px;
-    background:rgba(0,0,0,.28);
-    padding:8px 12px;
-    border-radius:10px;
-    backdrop-filter: blur(4px);
+#tag{
+  position:fixed;
+  top:12px;
+  left:12px;
+  color:#fff;
+  font-family:Arial,Helvetica,sans-serif;
+  font-size:15px;
+  padding:8px 12px;
+  border-radius:10px;
+  background:rgba(0,0,0,.25);
 }
 </style>
 </head>
 <body>
 
-<div id="label">Rainy Traffic Highway PRO</div>
+<div id="tag">Realistic Rain Highway Simulator</div>
 <canvas id="cv"></canvas>
 
 <script>
@@ -40,297 +39,224 @@ const ctx = canvas.getContext("2d");
 let w,h;
 
 function resize(){
-    w = canvas.width = innerWidth;
-    h = canvas.height = innerHeight;
+  w = canvas.width = innerWidth;
+  h = canvas.height = innerHeight;
 }
 addEventListener("resize",resize);
 resize();
 
 function rand(a,b){ return Math.random()*(b-a)+a; }
-function lerp(a,b,t){ return a+(b-a)*t; }
 
-// ===============================
-// WORLD DATA
-// ===============================
-const drops=[];
-const carsTop=[];
-const carsBottom=[];
-const birds=[];
-const clouds=[];
-let lightning=0;
+// ==========================
+// WORLD
+// ==========================
+const rain = [];
+const clouds = [];
+const carsUpper = [];
+const carsLower = [];
 
 // rain
 for(let i=0;i<220;i++){
-    drops.push({
-        x:rand(0,w),
-        y:rand(0,h),
-        sp:rand(12,22)
-    });
-}
-
-// top road left-moving
-const topColors=["white","silver","pink","lime","cyan","blue"];
-for(let i=0;i<7;i++){
-    carsTop.push({
-        x:w+i*220,
-        speed:rand(3,6),
-        color:topColors[i%topColors.length]
-    });
-}
-
-// bottom road right-moving
-const botColors=["red","orange","yellow","gold","purple","cyan"];
-for(let i=0;i<7;i++){
-    carsBottom.push({
-        x:-i*220,
-        speed:rand(3,6),
-        color:botColors[i%botColors.length]
-    });
-}
-
-// birds
-for(let i=0;i<6;i++){
-    birds.push({
-        x:rand(0,w),
-        y:rand(60,h*0.28),
-        sp:rand(1.5,3)
-    });
+  rain.push({
+    x:rand(0,w),
+    y:rand(0,h),
+    s:rand(10,18)
+  });
 }
 
 // clouds
-for(let i=0;i<5;i++){
-    clouds.push({
-        x:rand(0,w),
-        y:rand(40,160),
-        sp:rand(.15,.45),
-        s:rand(90,170)
-    });
+for(let i=0;i<4;i++){
+  clouds.push({
+    x:rand(0,w),
+    y:rand(40,130),
+    s:rand(0.15,0.35)
+  });
 }
 
-// ===============================
+// vehicle colors
+const palette = ["#e53935","#1e88e5","#43a047","#fb8c00","#fdd835","#8e24aa","#00acc1","#ffffff","#546e7a"];
+
+// upper road (left)
+for(let i=0;i<7;i++){
+  carsUpper.push({
+    x:w + i*220,
+    speed:rand(2.8,4.8),
+    color:palette[i%palette.length],
+    len:rand(52,68)
+  });
+}
+
+// lower road (right)
+for(let i=0;i<7;i++){
+  carsLower.push({
+    x:-i*240,
+    speed:rand(3,5),
+    color:palette[(i+3)%palette.length],
+    len:rand(52,70)
+  });
+}
+
+// ==========================
 // DRAW HELPERS
-// ===============================
+// ==========================
 function rect(x,y,ww,hh,c){
-    ctx.fillStyle=c;
-    ctx.fillRect(x,y,ww,hh);
+  ctx.fillStyle=c;
+  ctx.fillRect(x,y,ww,hh);
 }
 
 function circle(x,y,r,c){
+  ctx.beginPath();
+  ctx.arc(x,y,r,0,Math.PI*2);
+  ctx.fillStyle=c;
+  ctx.fill();
+}
+
+function cloud(x,y){
+  ctx.fillStyle="rgba(255,255,255,.35)";
+  circle(x,y,24);
+  circle(x+28,y-8,32);
+  circle(x+58,y,24);
+  circle(x+28,y+10,26);
+}
+
+function mountain(x,y,size,color){
+  ctx.beginPath();
+  ctx.moveTo(x,y);
+  ctx.lineTo(x+size,y-size);
+  ctx.lineTo(x+size*2,y);
+  ctx.closePath();
+  ctx.fillStyle=color;
+  ctx.fill();
+}
+
+function tree(x,y){
+  rect(x+5,y,10,34,"#5d3a1a");
+  circle(x+10,y-4,18,"#0a8d0a");
+  circle(x-2,y+6,13,"#087208");
+  circle(x+22,y+6,13,"#1db71d");
+}
+
+function drawRoad(y){
+  // shoulder
+  rect(0,y-4,w,4,"#666");
+  rect(0,y+88,w,4,"#666");
+
+  // asphalt
+  rect(0,y,w,88,"#2f2f2f");
+
+  // subtle wet sheen
+  rect(0,y+5,w,6,"rgba(255,255,255,.05)");
+
+  // lane markers
+  ctx.strokeStyle="white";
+  ctx.lineWidth=3;
+
+  for(let i=0;i<w;i+=62){
     ctx.beginPath();
-    ctx.arc(x,y,r,0,Math.PI*2);
-    ctx.fillStyle=c;
-    ctx.fill();
-}
-
-function mountainRange(y,size,color,offset){
-    ctx.fillStyle=color;
-    for(let x=-200+offset;x<w+220;x+=200){
-        ctx.beginPath();
-        ctx.moveTo(x,y);
-        ctx.lineTo(x+100,y-size);
-        ctx.lineTo(x+200,y);
-        ctx.closePath();
-        ctx.fill();
-    }
-}
-
-function drawTree(x,y,tick){
-    const sway=Math.sin(tick*0.02+x*0.01)*2;
-
-    rect(x+4+sway,y,10,38,"#4a2f17");
-    circle(x+9+sway,y-5,20,"#0b7e0b");
-    circle(x-3+sway,y+7,15,"#056805");
-    circle(x+22+sway,y+7,15,"#22bb22");
-}
-
-function road(y){
-    rect(0,y,w,88,"#2d2d2d");
-
-    // wet shine
-    ctx.fillStyle="rgba(255,255,255,.04)";
-    ctx.fillRect(0,y+4,w,8);
-
-    ctx.strokeStyle="white";
-    ctx.lineWidth=3;
-
-    for(let i=0;i<w;i+=60){
-        ctx.beginPath();
-        ctx.moveTo(i,y+44);
-        ctx.lineTo(i+30,y+44);
-        ctx.stroke();
-    }
-}
-
-function drawCar(x,y,color,dir,night){
-    // reflection
-    ctx.fillStyle="rgba(255,255,255,.05)";
-    ctx.fillRect(x-28,y+18,56,4);
-
-    // body
-    rect(x-28,y-16,56,24,color);
-    rect(x-16,y-30,32,16,color);
-
-    // wheels
-    circle(x-18,y+12,7,"black");
-    circle(x+18,y+12,7,"black");
-
-    // headlights
-    if(night){
-        ctx.fillStyle="rgba(255,255,180,.65)";
-        if(dir==="left"){
-            ctx.fillRect(x-34,y-8,8,5);
-        }else{
-            ctx.fillRect(x+26,y-8,8,5);
-        }
-    }
-}
-
-function drawBird(b,tick){
-    const flap=Math.sin(tick*0.18+b.x*0.01)*4;
-
-    ctx.strokeStyle="black";
-    ctx.lineWidth=2;
-
-    ctx.beginPath();
-    ctx.arc(b.x,b.y,10+flap,Math.PI,0);
+    ctx.moveTo(i,y+44);
+    ctx.lineTo(i+34,y+44);
     ctx.stroke();
-
-    ctx.beginPath();
-    ctx.arc(b.x+18,b.y,10-flap,Math.PI,0);
-    ctx.stroke();
+  }
 }
 
-function drawCloud(c){
-    ctx.fillStyle="rgba(255,255,255,.28)";
-    circle(c.x,c.y,26);
-    circle(c.x+28,c.y-8,34);
-    circle(c.x+60,c.y,28);
-    circle(c.x+30,c.y+10,30);
+function drawCar(x,y,len,color,dir){
+  // reflection
+  rect(x-len/2,y+18,len,3,"rgba(255,255,255,.05)");
+
+  // body
+  rect(x-len/2,y-15,len,24,color);
+
+  // cabin
+  rect(x-len/4,y-30,len/2,16,color);
+
+  // wheels
+  circle(x-len/3,y+12,7,"black");
+  circle(x+len/3,y+12,7,"black");
+
+  // windshield
+  rect(x-10,y-26,20,10,"rgba(220,240,255,.35)");
 }
 
-// ===============================
-// TIME CYCLE
-// 0..1..0 style loop
-// ===============================
-let tick=0;
-
-function getCycle(){
-    const t=(Math.sin(tick*0.002)+1)/2; // 0..1
-    return t;
-}
-
-function skyColor(t){
-    // 0 night, .5 evening/day, 1 bright day
-    const r=Math.floor(lerp(25,95,t));
-    const g=Math.floor(lerp(35,135,t));
-    const b=Math.floor(lerp(70,170,t));
-    return `rgb(${r},${g},${b})`;
-}
-
-// ===============================
+// ==========================
 // LOOP
-// ===============================
+// ==========================
 function animate(){
 
-    tick++;
+  // sky
+  rect(0,0,w,h,"#6f8fb1");
 
-    const cyc=getCycle();
-    const isNight=cyc<0.28;
-    const evening=cyc>=0.28 && cyc<0.55;
+  // sun behind clouds
+  circle(w-120,90,48,"#ffd400");
 
-    // sky
-    rect(0,0,w,h,skyColor(cyc));
+  // clouds
+  clouds.forEach(c=>{
+    cloud(c.x,c.y);
+    c.x += c.s;
+    if(c.x>w+120) c.x=-140;
+  });
 
-    // occasional lightning at night
-    if(isNight && Math.random()<0.003){
-        lightning=8;
-    }
-    if(lightning>0){
-        ctx.fillStyle="rgba(255,255,255,.35)";
-        ctx.fillRect(0,0,w,h);
-        lightning--;
-    }
+  // mountains
+  for(let x=-100;x<w+180;x+=180){
+    mountain(x,h*0.42,90,"#6a4b33");
+  }
 
-    // sun/moon position
-    const sx=w-120;
-    const sy=100;
+  // grass land
+  rect(0,h*0.42,w,h*0.58,"#2faa2f");
 
-    if(isNight){
-        circle(sx,sy,45,"#f2f2d8");
-        circle(sx+12,sy-8,38,"rgba(0,0,0,.18)");
-    }else{
-        circle(sx,sy,52, evening ? "#ffcf66" : "yellow");
-    }
+  // top roadside trees
+  for(let x=0;x<w+40;x+=160){
+    tree(x,h*0.42);
+  }
 
-    // clouds
-    clouds.forEach(c=>{
-        drawCloud(c);
-        c.x+=c.sp;
-        if(c.x>w+120)c.x=-140;
-    });
+  // roads
+  const road1 = h*0.52;
+  const road2 = h*0.72;
 
-    // mountains
-    mountainRange(h*0.46,170,"#4f3828",tick*0.03%200);
-    mountainRange(h*0.50,120,"#6b4f3a",tick*0.05%200);
+  drawRoad(road1);
+  drawRoad(road2);
 
-    // grass
-    rect(0,h*0.50,w,h*0.50,isNight ? "#1f6f1f" : "#2faa2f");
+  // upper traffic left
+  carsUpper.forEach(c=>{
+    c.x -= c.speed;
 
-    // trees
-    for(let x=-20;x<w+60;x+=150){
-        drawTree(x,h*0.50,tick);
+    if(c.x < -120){
+      c.x = w + rand(80,180);
     }
 
-    // roads
-    const roadTop=h*0.54;
-    const roadBottom=h*0.72;
+    drawCar(c.x,road1+44,c.len,c.color,"left");
+  });
 
-    road(roadTop);
-    road(roadBottom);
+  // lower traffic right
+  carsLower.forEach(c=>{
+    c.x += c.speed;
 
-    // top cars left
-    carsTop.forEach(c=>{
-        c.x-=c.speed;
-        if(c.x<-120)c.x=w+120;
-        drawCar(c.x,roadTop+44,c.color,"left",isNight);
-    });
-
-    // bottom cars right
-    carsBottom.forEach(c=>{
-        c.x+=c.speed;
-        if(c.x>w+120)c.x=-120;
-        drawCar(c.x,roadBottom+44,c.color,"right",isNight);
-    });
-
-    // birds only daytime
-    if(!isNight){
-        birds.forEach(b=>{
-            drawBird(b,tick);
-            b.x+=b.sp;
-            if(b.x>w+40)b.x=-40;
-        });
+    if(c.x > w+120){
+      c.x = -rand(100,220);
     }
 
-    // rain
-    ctx.strokeStyle="rgba(190,235,255,.9)";
-    ctx.lineWidth=1.5;
+    drawCar(c.x,road2+44,c.len,c.color,"right");
+  });
 
-    drops.forEach(d=>{
-        ctx.beginPath();
-        ctx.moveTo(d.x,d.y);
-        ctx.lineTo(d.x-5,d.y+14);
-        ctx.stroke();
+  // rain
+  ctx.strokeStyle="rgba(210,245,255,.9)";
+  ctx.lineWidth=1.4;
 
-        d.y+=d.sp;
-        d.x-=2;
+  rain.forEach(d=>{
+    ctx.beginPath();
+    ctx.moveTo(d.x,d.y);
+    ctx.lineTo(d.x-4,d.y+14);
+    ctx.stroke();
 
-        if(d.y>h){
-            d.y=-20;
-            d.x=rand(0,w);
-        }
-    });
+    d.y += d.s;
+    d.x -= 1.5;
 
-    requestAnimationFrame(animate);
+    if(d.y > h){
+      d.y = -20;
+      d.x = rand(0,w);
+    }
+  });
+
+  requestAnimationFrame(animate);
 }
 
 animate();
