@@ -1,152 +1,138 @@
-<!-- index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Rainy Traffic Highway Scene</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rainy Highway Scene</title>
 <style>
-html,body{
-  margin:0;
-  padding:0;
-  overflow:hidden;
-  background:#5d7ea3;
+body {
+  margin: 0;
+  overflow: hidden;
+  background: #5d7ea3;
 }
-canvas{
-  display:block;
+canvas {
+  display: block;
 }
-#title{
-  position:fixed;
-  top:10px;
-  left:14px;
-  color:white;
-  font-family:Arial, sans-serif;
-  font-size:18px;
-  background:rgba(0,0,0,.25);
-  padding:8px 12px;
-  border-radius:10px;
+#title {
+  position: fixed;
+  top: 10px;
+  left: 15px;
+  color: white;
+  font-family: Arial;
+  background: rgba(0,0,0,0.3);
+  padding: 8px 12px;
+  border-radius: 8px;
 }
 </style>
 </head>
 <body>
-<div id="title">Rainy Traffic Highway Scene</div>
+
+<div id="title">Rainy Traffic Highway</div>
 <canvas id="c"></canvas>
 
 <script>
 const canvas = document.getElementById("c");
 const ctx = canvas.getContext("2d");
 
-let w,h;
+let w, h;
 
-function resize(){
+function resize() {
   w = canvas.width = window.innerWidth;
   h = canvas.height = window.innerHeight;
 }
-window.addEventListener("resize",resize);
+window.addEventListener("resize", resize);
 resize();
 
-const cars = [];
-const drops = [];
-const birds = [];
+function rand(a,b){ return Math.random()*(b-a)+a; }
 
-function rand(a,b){
-  return Math.random()*(b-a)+a;
-}
+// ================= OBJECTS =================
 
-/* ---------- INIT ---------- */
+let cars = [];
+let rain = [];
+let birds = [];
 
-// lower road cars -> right
-const colors1 = ["gold","red","cyan","orange","purple"];
-for(let i=0;i<5;i++){
-  cars.push({
-    x:-200 - i*220,
-    y:h-235,
-    speed:4,
-    color:colors1[i%colors1.length]
-  });
-}
-
-// upper road cars -> left
-const colors2 = ["white","blue","pink","yellow","green","silver"];
+// Cars
 for(let i=0;i<6;i++){
-  cars.push({
-    x:w + i*180,
-    y:h-375,
-    speed:-5,
-    color:colors2[i%colors2.length]
-  });
+  cars.push({x:-200*i, y:h*0.7, speed:3+Math.random()*2, color:["red","yellow","cyan","orange"][i%4]});
 }
-
-// rain
-for(let i=0;i<160;i++){
-  drops.push({
-    x:rand(0,w),
-    y:rand(0,h)
-  });
-}
-
-// birds
 for(let i=0;i<6;i++){
-  birds.push({
-    x:rand(0,w),
-    y:rand(50,h*0.35),
-    speed:rand(2,5)
-  });
+  cars.push({x:w+200*i, y:h*0.55, speed:-4-Math.random()*2, color:["white","blue","pink","green"][i%4]});
 }
 
-/* ---------- DRAW HELPERS ---------- */
-
-function rect(x,y,ww,hh,color){
-  ctx.fillStyle=color;
-  ctx.fillRect(x,y,ww,hh);
+// Rain
+for(let i=0;i<200;i++){
+  rain.push({x:rand(0,w), y:rand(0,h)});
 }
 
-function circle(x,y,r,color){
+// Birds
+for(let i=0;i<6;i++){
+  birds.push({x:rand(0,w), y:rand(50,h*0.3), speed:2+Math.random()*2});
+}
+
+// ================= DRAW =================
+
+function drawMountainLayer(y, scale, color){
+  ctx.fillStyle = color;
+  for(let x=-100; x<w+200; x+=200){
+    ctx.beginPath();
+    ctx.moveTo(x,y);
+    ctx.lineTo(x+100,y-120*scale);
+    ctx.lineTo(x+200,y);
+    ctx.fill();
+  }
+}
+
+function drawTree(x,y){
+  // trunk
+  ctx.fillStyle="#4a2f17";
+  ctx.fillRect(x,y,12,40);
+
+  // leaves
   ctx.beginPath();
-  ctx.arc(x,y,r,0,Math.PI*2);
-  ctx.fillStyle=color;
+  ctx.arc(x+6,y,20,0,Math.PI*2);
+  ctx.fillStyle="green";
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.arc(x-10,y+10,15,0,Math.PI*2);
+  ctx.fillStyle="darkgreen";
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.arc(x+18,y+10,15,0,Math.PI*2);
+  ctx.fillStyle="limegreen";
   ctx.fill();
 }
 
-function mountain(x,y,s){
-  ctx.beginPath();
-  ctx.moveTo(x,y);
-  ctx.lineTo(x+s,y-s);
-  ctx.lineTo(x+2*s,y);
-  ctx.closePath();
-  ctx.fillStyle="#6b4f3a";
-  ctx.fill();
-}
+function drawRoad(y){
+  ctx.fillStyle="#2f2f2f";
+  ctx.fillRect(0,y,w,80);
 
-function tree(x,y){
-  rect(x,y,16,45,"#4a2f17");
-  circle(x-8,y+35,18,"darkgreen");
-  circle(x+12,y+42,18,"green");
-  circle(x+2,y+55,18,"limegreen");
-}
-
-function road(y){
-  rect(0,y,w,90,"#333");
   ctx.strokeStyle="white";
   ctx.lineWidth=3;
-  for(let i=0;i<w;i+=55){
+
+  for(let i=0;i<w;i+=60){
     ctx.beginPath();
-    ctx.moveTo(i,y+45);
-    ctx.lineTo(i+30,y+45);
+    ctx.moveTo(i,y+40);
+    ctx.lineTo(i+30,y+40);
     ctx.stroke();
   }
 }
 
 function drawCar(c){
   // body
-  rect(c.x-28,c.y-18,56,28,c.color);
+  ctx.fillStyle=c.color;
+  ctx.fillRect(c.x-25,c.y-15,50,25);
 
-  // roof
-  rect(c.x-16,c.y-32,32,16,c.color);
+  // top
+  ctx.fillRect(c.x-15,c.y-30,30,15);
 
   // wheels
-  circle(c.x-18,c.y+14,8,"black");
-  circle(c.x+18,c.y+14,8,"black");
+  ctx.beginPath();
+  ctx.arc(c.x-15,c.y+12,6,0,Math.PI*2);
+  ctx.arc(c.x+15,c.y+12,6,0,Math.PI*2);
+  ctx.fillStyle="black";
+  ctx.fill();
 }
 
 function drawBird(b){
@@ -162,55 +148,55 @@ function drawBird(b){
   ctx.stroke();
 }
 
-/* ---------- LOOP ---------- */
+// ================= LOOP =================
 
 function animate(){
 
   // sky
-  rect(0,0,w,h,"#5d7ea3");
+  ctx.fillStyle="#5d7ea3";
+  ctx.fillRect(0,0,w,h);
 
   // sun
-  circle(w-120,100,55,"yellow");
+  ctx.beginPath();
+  ctx.arc(w-120,100,50,0,Math.PI*2);
+  ctx.fillStyle="yellow";
+  ctx.fill();
 
-  // mountains
-  for(let x=-50;x<w+150;x+=180){
-    mountain(x,h*0.35,90);
-  }
+  // mountains (depth layers)
+  drawMountainLayer(h*0.45,1.2,"#5a3e2b");
+  drawMountainLayer(h*0.5,1,"#6b4f3a");
 
   // grass
-  rect(0,h*0.45,w,h*0.55,"#2fa82f");
+  ctx.fillStyle="#2fa82f";
+  ctx.fillRect(0,h*0.5,w,h);
 
   // trees
-  for(let x=30;x<w;x+=160){
-    tree(x,h*0.45);
+  for(let i=0;i<w;i+=150){
+    drawTree(i,h*0.5);
   }
 
   // roads
-  road(h-280);
-  road(h-420);
+  drawRoad(h*0.65);
+  drawRoad(h*0.52);
 
   // cars
   cars.forEach(c=>{
-    c.x += c.speed;
-
-    if(c.speed>0 && c.x>w+80) c.x=-120;
-    if(c.speed<0 && c.x<-80) c.x=w+120;
-
+    c.x+=c.speed;
+    if(c.speed>0 && c.x>w+50) c.x=-100;
+    if(c.speed<0 && c.x<-50) c.x=w+100;
     drawCar(c);
   });
 
   // rain
   ctx.strokeStyle="lightblue";
-  ctx.lineWidth=1.5;
-
-  drops.forEach(d=>{
+  rain.forEach(d=>{
     ctx.beginPath();
     ctx.moveTo(d.x,d.y);
-    ctx.lineTo(d.x-5,d.y+14);
+    ctx.lineTo(d.x-4,d.y+12);
     ctx.stroke();
 
-    d.y += 18;
-    d.x -= 3;
+    d.y+=15;
+    d.x-=2;
 
     if(d.y>h){
       d.y=0;
@@ -221,7 +207,7 @@ function animate(){
   // birds
   birds.forEach(b=>{
     drawBird(b);
-    b.x += b.speed;
+    b.x+=b.speed;
     if(b.x>w+40) b.x=-40;
   });
 
@@ -230,5 +216,6 @@ function animate(){
 
 animate();
 </script>
+
 </body>
 </html>
