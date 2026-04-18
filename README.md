@@ -1,12 +1,20 @@
 # AI Vibe Projects 🚀
 
-Creative prototypes and rapid coding experiments built using AI-assisted workflows.
+Rapid prototypes, creative coding, simulations, and experiments built using AI-assisted workflows.
 
-## Included Projects
-- Traffic simulator
-- Mountain drive animation
-- Smart clock visuals
-- Creative coding experiments
+## Featured Projects
 
-## Built By
+### 🚗 Traffic Movement Simulator
+Dynamic vehicle movement animation.
+
+### 🏔️ Mountain Drive Scene
+Creative moving car in mountain environment.
+
+### 🕒 Animated Clock
+Visual clock project with Python.
+
+## Builder
 Ravinder Ozha
+
+## Vision
+Turning ideas into working products rapidly.
